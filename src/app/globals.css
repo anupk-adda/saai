@@ -1,0 +1,173 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Services Australia specific styles */
+.sa-card {
+  @apply bg-sa-white rounded-lg shadow-sa border border-sa-light-gray p-6 hover:shadow-sa-lg transition-shadow duration-200;
+}
+
+.sa-button {
+  @apply bg-sa-blue text-sa-white px-6 py-3 rounded-lg font-medium hover:bg-sa-light-blue transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.sa-button-secondary {
+  @apply bg-sa-white text-sa-blue border border-sa-blue px-6 py-3 rounded-lg font-medium hover:bg-sa-light-gray transition-colors duration-200;
+}
+
+.sa-input {
+  @apply w-full px-4 py-3 border border-sa-light-gray rounded-lg focus:ring-2 focus:ring-sa-accent-blue focus:border-transparent outline-none transition-all duration-200;
+}
+
+.sa-badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-success {
+  @apply bg-green-100 text-sa-green;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-sa-yellow;
+}
+
+.badge-error {
+  @apply bg-red-100 text-sa-red;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-sa-accent-blue;
+}
+
+/* Navigation button styles */
+.nav-button {
+  @apply w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors duration-200 text-sa-dark-blue bg-sa-white border border-sa-light-gray hover:bg-sa-light-gray hover:border-sa-gray;
+}
+
+.nav-button-active {
+  @apply w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors duration-200 bg-sa-blue text-sa-white border border-sa-blue hover:bg-sa-light-blue;
+}
+
+.nav-button:hover {
+  @apply bg-sa-light-gray border-sa-gray;
+}
+
+.nav-button-active:hover {
+  @apply bg-sa-light-blue;
+}
+
+/* Services Australia Header Styles */
+.sa-header {
+  @apply bg-sa-blue text-sa-white;
+}
+
+.sa-header-text {
+  @apply text-sa-white font-semibold;
+}
+
+.sa-subheader {
+  @apply text-sa-gray text-sm;
+}
+
+/* Chat Interface Styles */
+.sa-chat-bubble-user {
+  @apply bg-sa-blue text-sa-white rounded-lg px-4 py-3;
+}
+
+.sa-chat-bubble-assistant {
+  @apply bg-sa-light-gray text-sa-dark-blue rounded-lg px-4 py-3;
+}
+
+.sa-proactive-box {
+  @apply bg-yellow-50 border border-yellow-200 rounded-lg p-4;
+}
+
+.sa-proactive-title {
+  @apply font-semibold text-yellow-800 mb-2;
+}
+
+.sa-proactive-button {
+  @apply w-full p-3 bg-sa-white border border-yellow-300 rounded-lg hover:bg-yellow-100 transition-colors text-left;
+}
+
+.sa-proactive-button-title {
+  @apply font-medium text-yellow-900;
+}
+
+.sa-proactive-button-desc {
+  @apply text-sm text-yellow-700 mt-1;
+}
