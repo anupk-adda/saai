@@ -68,10 +68,13 @@ docker run -p 3000:3000 services-ai-app
 
 ### IBM Cloud Code Engine Deployment
 ```bash
-# Run automated deployment
+# GitHub-based deployment (recommended)
+./github-deploy.sh
+
+# Traditional deployment
 ./deploy.sh
 
-# Or quick deployment
+# Quick deployment
 ./quick-deploy.sh
 ```
 

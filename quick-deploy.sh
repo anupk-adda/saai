@@ -17,13 +17,31 @@ echo "   App: $APP_NAME"
 echo "   Registry: $REGISTRY_NAMESPACE"
 echo ""
 
-# Step 1: Build and push image
-echo "🔨 Building and pushing Docker image..."
-docker build -t services-ai-app .
-docker tag services-ai-app us.icr.io/$REGISTRY_NAMESPACE/services-ai-app:latest
-docker push us.icr.io/$REGISTRY_NAMESPACE/services-ai-app:latest
+# Step 1: Create API key and registry secret
+echo "🔑 Creating API key and registry secret..."
+API_KEY_OUTPUT=$(ibmcloud iam api-key-create codeengine-icr-key --output json)
+API_KEY=$(echo $API_KEY_OUTPUT | jq -r '.apikey')
+ibmcloud ce secret create --name icr-secret --format registry --server us.icr.io --username iamapikey --password $API_KEY
 
-# Step 2: Deploy to Code Engine
+# Step 2: Create build configuration
+echo "🏗️ Creating build configuration..."
+ibmcloud ce build create \
+  --name services-ai-build \
+  --source https://github.com/anupk-adda/saai \
+  --context-dir . \
+  --dockerfile Dockerfile \
+  --strategy dockerfile \
+  --image us.icr.io/$REGISTRY_NAMESPACE/services-ai-app:latest \
+  --registry-secret icr-secret
+
+# Step 3: Submit build
+echo "📦 Building application from GitHub..."
+ibmcloud ce buildrun submit \
+  --build services-ai-build \
+  --name services-ai-buildrun-1 \
+  --wait
+
+# Step 4: Deploy to Code Engine
 echo "🚀 Deploying to Code Engine..."
 ibmcloud ce app create \
   --name $APP_NAME \
@@ -35,7 +53,7 @@ ibmcloud ce app create \
   --max-scale 10 \
   --env NODE_ENV=production
 
-# Step 3: Get URL
+# Step 5: Get URL
 echo "🌐 Getting application URL..."
 APP_URL=$(ibmcloud ce app get --name $APP_NAME --output url)
 echo ""

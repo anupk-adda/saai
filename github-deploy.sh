@@ -1,19 +1,19 @@
 #!/bin/bash
 
-# IBM Cloud Code Engine Deployment Script
+# GitHub-based IBM Cloud Code Engine Deployment Script
 # Services Australia AI Assistant
 
 set -e  # Exit on any error
 
-echo "🚀 Starting deployment to IBM Cloud Code Engine..."
-echo "=================================================="
+echo "🚀 Starting GitHub-based deployment to IBM Cloud Code Engine..."
+echo "=============================================================="
 
 # Configuration
 PROJECT_NAME="services-ai-project"
 APP_NAME="services-ai-app"
-IMAGE_NAME="services-ai-app"
+BUILD_NAME="services-ai-build"
 REGISTRY_NAMESPACE="services-ai-namespace"
-REGISTRY_URL="us.icr.io"
+GITHUB_REPO="https://github.com/anupk-adda/saai"
 
 # Colors for output
 RED='\033[0;31m'
@@ -48,13 +48,8 @@ check_prerequisites() {
         exit 1
     fi
     
-    if ! command -v docker &> /dev/null; then
-        print_error "Docker is not installed. Please install it first."
-        exit 1
-    fi
-    
-    if ! command -v npm &> /dev/null; then
-        print_error "Node.js/npm is not installed. Please install it first."
+    if ! command -v jq &> /dev/null; then
+        print_error "jq is not installed. Please install it first."
         exit 1
     fi
     
@@ -100,14 +95,17 @@ setup_container_registry() {
         print_status "Creating Container Registry namespace: $REGISTRY_NAMESPACE"
         ibmcloud cr namespace-add $REGISTRY_NAMESPACE
     fi
-    
-    # Login to container registry
-    ibmcloud cr login
 }
 
 # Create registry access secret
 create_registry_secret() {
     print_status "Creating registry access secret..."
+    
+    # Check if secret already exists
+    if ibmcloud ce secret get --name icr-secret &> /dev/null; then
+        print_success "Registry secret icr-secret already exists."
+        return
+    fi
     
     # Create API key
     print_status "Creating API key for Code Engine..."
@@ -131,26 +129,37 @@ create_registry_secret() {
     print_success "Registry secret created successfully"
 }
 
-# Build application from GitHub repository
-build_from_github() {
-    print_status "Building application from GitHub repository..."
-    
-    # Create build configuration
+# Create build configuration
+create_build_config() {
     print_status "Creating build configuration..."
-    ibmcloud ce build create \
-        --name services-ai-build \
-        --source https://github.com/anupk-adda/saai \
-        --context-dir . \
-        --dockerfile Dockerfile \
-        --strategy dockerfile \
-        --image us.icr.io/$REGISTRY_NAMESPACE/$IMAGE_NAME:latest \
-        --registry-secret icr-secret
     
-    # Submit build
-    print_status "Submitting build run..."
+    # Check if build already exists
+    if ibmcloud ce build get --name $BUILD_NAME &> /dev/null; then
+        print_success "Build configuration $BUILD_NAME already exists."
+    else
+        print_status "Creating build configuration: $BUILD_NAME"
+        ibmcloud ce build create \
+            --name $BUILD_NAME \
+            --source $GITHUB_REPO \
+            --context-dir . \
+            --dockerfile Dockerfile \
+            --strategy dockerfile \
+            --image us.icr.io/$REGISTRY_NAMESPACE/$APP_NAME:latest \
+            --registry-secret icr-secret
+        
+        print_success "Build configuration created successfully"
+    fi
+}
+
+# Submit build
+submit_build() {
+    print_status "Submitting build from GitHub repository..."
+    
     BUILD_RUN_NAME="services-ai-buildrun-$(date +%s)"
+    print_status "Build run name: $BUILD_RUN_NAME"
+    
     ibmcloud ce buildrun submit \
-        --build services-ai-build \
+        --build $BUILD_NAME \
         --name $BUILD_RUN_NAME \
         --wait
     
@@ -161,19 +170,17 @@ build_from_github() {
 deploy_to_code_engine() {
     print_status "Deploying to Code Engine..."
     
-    FULL_IMAGE_NAME="$REGISTRY_URL/$REGISTRY_NAMESPACE/$IMAGE_NAME:latest"
-    
     # Check if application exists
     if ibmcloud ce app get --name $APP_NAME &> /dev/null; then
         print_status "Updating existing application: $APP_NAME"
         ibmcloud ce app update \
             --name $APP_NAME \
-            --image $FULL_IMAGE_NAME
+            --image us.icr.io/$REGISTRY_NAMESPACE/$APP_NAME:latest
     else
         print_status "Creating new application: $APP_NAME"
         ibmcloud ce app create \
             --name $APP_NAME \
-            --image $FULL_IMAGE_NAME \
+            --image us.icr.io/$REGISTRY_NAMESPACE/$APP_NAME:latest \
             --port 3000 \
             --cpu 0.5 \
             --memory 1Gi \
@@ -219,8 +226,8 @@ show_app_status() {
 
 # Main deployment function
 main() {
-    echo "Services Australia AI Assistant - IBM Cloud Deployment"
-    echo "======================================================"
+    echo "Services Australia AI Assistant - GitHub-based IBM Cloud Deployment"
+    echo "================================================================="
     echo ""
     
     check_prerequisites
@@ -228,14 +235,16 @@ main() {
     setup_code_engine
     setup_container_registry
     create_registry_secret
-    build_from_github
+    create_build_config
+    submit_build
     deploy_to_code_engine
     get_app_url
     show_app_status
     
     echo ""
-    print_success "🚀 Deployment completed successfully!"
+    print_success "🚀 GitHub-based deployment completed successfully!"
     print_status "Your application is now running on IBM Cloud Code Engine."
+    print_status "Source code is automatically pulled from: $GITHUB_REPO"
 }
 
 # Run main function

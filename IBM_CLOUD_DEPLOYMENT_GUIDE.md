@@ -255,42 +255,65 @@ ibmcloud ce project get
 
 ---
 
-## 📦 **Step 5: Build and Push Container Image**
+## 📦 **Step 5: Create Registry Access Secret**
 
-### **5.1 Configure Container Registry**
+### **5.1 Create API Key**
 ```bash
-# Set container registry namespace
-ibmcloud cr namespace-add services-ai-namespace
-
-# Login to container registry
-ibmcloud cr login
+# Create API key for Code Engine
+ibmcloud iam api-key-create codeengine-icr-key
 ```
 
-### **5.2 Build and Push Image**
+### **5.2 Create Registry Secret**
 ```bash
-# Build the Docker image
-docker build -t services-ai-app .
-
-# Tag the image for IBM Container Registry
-docker tag services-ai-app us.icr.io/services-ai-namespace/services-ai-app:latest
-
-# Push the image to IBM Container Registry
-docker push us.icr.io/services-ai-namespace/services-ai-app:latest
+# Create registry secret (replace YOUR_API_KEY with the actual key from step 5.1)
+ibmcloud ce secret create \
+  --name icr-secret \
+  --format registry \
+  --server us.icr.io \
+  --username iamapikey \
+  --password YOUR_API_KEY
 ```
 
-### **5.3 Verify Image Push**
+## 🏗️ **Step 6: Build Application from GitHub Repository**
+
+### **6.1 Create Build Configuration**
 ```bash
+# Create build configuration using GitHub repository
+ibmcloud ce build create \
+  --name services-ai-build \
+  --source https://github.com/anupk-adda/saai \
+  --context-dir . \
+  --dockerfile Dockerfile \
+  --strategy dockerfile \
+  --image us.icr.io/services-ai-namespace/services-ai-app:latest \
+  --registry-secret icr-secret
+```
+
+### **6.2 Submit Build**
+```bash
+# Submit build run
+ibmcloud ce buildrun submit \
+  --build services-ai-build \
+  --name services-ai-buildrun-1 \
+  --wait
+```
+
+### **6.3 Verify Build**
+```bash
+# Check build status
+ibmcloud ce buildrun get --name services-ai-buildrun-1
+
 # List images in your namespace
 ibmcloud cr images
 ```
 
 ---
 
-## 🚀 **Step 6: Deploy to Code Engine**
+## 🚀 **Step 7: Deploy to Code Engine**
 
-### **6.1 Create Application**
+### **7.1 Create Application**
 ```bash
-# Create Code Engine application
+# Create Code Engine application using the built image
 ibmcloud ce app create \
   --name services-ai-app \
   --image us.icr.io/services-ai-namespace/services-ai-app:latest \
@@ -302,7 +325,7 @@ ibmcloud ce app create \
   --env NODE_ENV=production
 ```
 
-### **6.2 Verify Application Deployment**
+### **7.2 Verify Application Deployment**
 ```bash
 # Get application details
 ibmcloud ce app get --name services-ai-app
@@ -313,9 +336,9 @@ ibmcloud ce app get --name services-ai-app --output url
 
 ---
 
-## 🌐 **Step 7: Configure Custom Domain (Optional)**
+## 🌐 **Step 8: Configure Custom Domain (Optional)**
 
-### **7.1 Create Custom Domain**
+### **8.1 Create Custom Domain**
 ```bash
 # Create custom domain
 ibmcloud ce domain create \
@@ -323,7 +346,7 @@ ibmcloud ce domain create \
   --hostname your-domain.com
 ```
 
-### **7.2 Map Domain to Application**
+### **8.2 Map Domain to Application**
 ```bash
 # Map domain to application
 ibmcloud ce domain mapping create \
@@ -333,20 +356,21 @@ ibmcloud ce domain mapping create \
 
 ---
 
-## 🔄 **Step 8: Continuous Deployment Setup**
+## 🔄 **Step 9: Continuous Deployment Setup**
 
-### **8.1 Create Deployment Script**
+### **9.1 Create Deployment Script**
 ```bash
 #!/bin/bash
 # deploy.sh
 
 echo "🚀 Starting deployment to IBM Cloud Code Engine..."
 
-# Build and push image
-echo "📦 Building and pushing Docker image..."
-docker build -t services-ai-app .
-docker tag services-ai-app us.icr.io/services-ai-namespace/services-ai-app:latest
-docker push us.icr.io/services-ai-namespace/services-ai-app:latest
+# Submit new build from GitHub repository
+echo "📦 Building application from GitHub repository..."
+ibmcloud ce buildrun submit \
+  --build services-ai-build \
+  --name services-ai-buildrun-$(date +%s) \
+  --wait
 
 # Update application
 echo "🔄 Updating Code Engine application..."
@@ -358,16 +382,16 @@ echo "✅ Deployment completed successfully!"
 echo "🌐 Application URL: $(ibmcloud ce app get --name services-ai-app --output url)"
 ```
 
-### **8.2 Make Script Executable**
+### **9.2 Make Script Executable**
 ```bash
 chmod +x deploy.sh
 ```
 
 ---
 
-## 📊 **Step 9: Monitoring and Logs**
+## 📊 **Step 10: Monitoring and Logs**
 
-### **9.1 View Application Logs**
+### **10.1 View Application Logs**
 ```bash
 # Stream application logs
 ibmcloud ce app logs --name services-ai-app --follow
@@ -376,7 +400,7 @@ ibmcloud ce app logs --name services-ai-app --follow
 ibmcloud ce app logs --name services-ai-app --tail 100
 ```
 
-### **9.2 Monitor Application Metrics**
+### **10.2 Monitor Application Metrics**
 ```bash
 # Get application status
 ibmcloud ce app get --name services-ai-app
@@ -387,9 +411,9 @@ ibmcloud ce revision list --app services-ai-app
 
 ---
 
-## 🔧 **Step 10: Environment Variables**
+## 🔧 **Step 11: Environment Variables**
 
-### **10.1 Set Environment Variables**
+### **11.1 Set Environment Variables**
 ```bash
 # Set environment variables
 ibmcloud ce app update \
@@ -399,7 +423,7 @@ ibmcloud ce app update \
   --env HOSTNAME=0.0.0.0
 ```
 
-### **10.2 Update Application with New Variables**
+### **11.2 Update Application with New Variables**
 ```bash
 # Update application with environment variables
 ibmcloud ce app update \
@@ -492,12 +516,27 @@ ibmcloud ce app update \
 
 ### **Manual Step-by-Step**
 ```bash
-# 1. Build and push
-docker build -t services-ai-app .
-docker tag services-ai-app us.icr.io/services-ai-namespace/services-ai-app:latest
-docker push us.icr.io/services-ai-namespace/services-ai-app:latest
+# 1. Create API key and registry secret
+ibmcloud iam api-key-create codeengine-icr-key
+ibmcloud ce secret create --name icr-secret --format registry --server us.icr.io --username iamapikey --password YOUR_API_KEY
 
-# 2. Deploy
+# 2. Create build configuration
+ibmcloud ce build create \
+  --name services-ai-build \
+  --source https://github.com/anupk-adda/saai \
+  --context-dir . \
+  --dockerfile Dockerfile \
+  --strategy dockerfile \
+  --image us.icr.io/services-ai-namespace/services-ai-app:latest \
+  --registry-secret icr-secret
+
+# 3. Submit build
+ibmcloud ce buildrun submit \
+  --build services-ai-build \
+  --name services-ai-buildrun-1 \
+  --wait
+
+# 4. Deploy application
 ibmcloud ce app create \
   --name services-ai-app \
   --image us.icr.io/services-ai-namespace/services-ai-app:latest \
@@ -507,7 +546,7 @@ ibmcloud ce app create \
   --min-scale 1 \
   --max-scale 10
 
-# 3. Get URL
+# 5. Get URL
 ibmcloud ce app get --name services-ai-app --output url
 ```
 
